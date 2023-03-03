@@ -1,7 +1,7 @@
 ################################################################################
 getFRCData <- function(url) {
   req <- httr::GET(url, httr::add_headers("X-TBA-Auth-Key" = "7uCOWXlId3hYREjr5VsLJWmzhOVX29V9buThele7yIcbBBf6qzhswX7LYpvsVEfX"))
-  json <- httr::content(req, as = "text")
+  json <- httr::content(req, as = "text", encoding = "UTF-8")
   data <- jsonlite::fromJSON(json)
   return(data)
 } #Pulls dataset from Blue Alliance api.
@@ -91,6 +91,12 @@ getTeamMatchesSimple <- function(year, team) {
   return(getFRCData(url))
 } #Lists abridged important match information for a team in a given year.
 getTeamEvents <- function(year, team){
+    url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
+                   team,"/events/",year),
+                 collapse = "")
+    return(getFRCData(url))
+} #Lists full event information for team in a given year.
+getTeamEventForOpr <- function(year, team){
   data1 <- distinct(getTeamMatchesSimple(year, team) %>%
               select("event_key"))
   data2 <- getEvents(year) %>%
@@ -99,10 +105,10 @@ getTeamEvents <- function(year, team){
     left_join(data2, by = c("event_key" = "key"))
   return(data3)
   
-} #Lists events given team participated in.
+} #Lists events given team participated in, formated for getTeamOpr.
 getTeamOpr <- function(year, team){
   key <- paste(c("frc",team),collapse = "")
-  data1 <- getTeamEvents(year,team)
+  data1 <- getTeamEventForOpr(year,team)
   opr <- vector("character",1)
   for (i in 1:length(data1$event_key)){
     eventKey <- data1$event_key[i]
@@ -114,7 +120,7 @@ getTeamOpr <- function(year, team){
 getTeamEventOpr <- function(year, team, event_code){
   key1 <- paste(c("frc",team),collapse = "")
   key2 <- paste(c(year, event_code),collapse = "")
-  data1 <- getTeamEvents(year,team)
+  data1 <- getTeamEventForOpr(year,team)
   opr <- getEventOprs(year, event_code)[[key1]]
   data2 <- data1 %>% mutate("OPR" = opr)
   data3 <- data2 %>%
@@ -199,6 +205,40 @@ getTeamMatchesCustom <- function(year,team){
            filter(event_type_string != "Offseason"))
 } #Generates custom match information for a given team in a given year.
 ################################################################################
+getTeamOpponets <- function(year, team){
+  data1 <- getTeamEvents(year, team) %>%
+    select(event_code)
+  data3 <- NULL
+  for (i in 1:length(data1[[1]])){
+     data2 <- getEventTeamsKeys(year, data1[[1]][[i]])
+     data3 <- c(data3,data2)
+  }
+  data4 <- as.numeric(gsub('frc','',data3))
+  data5 <- data4[order(data4)]
+  data6 <- distinct(as_tibble(data5))
+  return(data6)
+}
+getTeamOpponetsEvents <- function(year,team){
+  data1 <- getTeamOpponets(year,team) 
+  data2 <- NULL
+  columns <- 1
+  for(i in 1:length(data1[[1]])){
+    oppEvents <- getTeamEvents(year, data1[[1]][[i]]) %>%
+      select(name, week, end_date)
+    
+    for(i in 1:length(getTeamEvents(year, data1[[1]]))){
+      data2 <- data1
+      if (length(getTeamEvents(year, data1[[1]])) > columns){
+        columns <- columns + 1
+        data1 <- data1 %>%
+          mutate(i = oppEvents[[i]])
+      }
+      
+    }
+  }
+  return(data1)
+}
+################################################################################
 plotScores <- function(year, team){
   winData <- getTeamMatchesCustom(year,team)
   qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),shape = factor(str_trunc(name, 20)), main = team) + xlim(10,200) + ylim(10,200) + labs (shape = "Event") + labs (color = "Results")
@@ -209,5 +249,11 @@ plotScoresSimple <- function(year, team){
 } #Simplified version of plotScores if team has too many matches.
 ################################################################################
 
+view(getTeamOpponetsEvents(2023,8044))
+getTeamOpponetsEvents(2023,8044)
+typeof(getTeamOpponetsEvents(2023,8044))
 
 
+view(getEventTeamsKeys(2023, "lake"))
+getTeamEvents(2023, 8044)
+view(getFRCData("https://www.thebluealliance.com/api/v3/team/frc8044/events/2023"))
