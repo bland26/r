@@ -1,3 +1,10 @@
+
+library(plotly)
+library(jsonlite)
+library(httr)
+library(tidyverse)
+library(shiny)
+
 ################################################################################
 getFRCData <- function(url) {
   req <- httr::GET(url, httr::add_headers("X-TBA-Auth-Key" = "7uCOWXlId3hYREjr5VsLJWmzhOVX29V9buThele7yIcbBBf6qzhswX7LYpvsVEfX"))
@@ -91,14 +98,14 @@ getTeamMatchesSimple <- function(year, team) {
   return(getFRCData(url))
 } #Lists abridged important match information for a team in a given year.
 getTeamEvents <- function(year, team){
-    url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
-                   team,"/events/",year),
-                 collapse = "")
-    return(getFRCData(url))
+  url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
+                 team,"/events/",year),
+               collapse = "")
+  return(getFRCData(url))
 } #Lists full event information for team in a given year.
 getTeamEventForOpr <- function(year, team){
   data1 <- distinct(getTeamMatchesSimple(year, team) %>%
-              select("event_key"))
+                      select("event_key"))
   data2 <- getEvents(year) %>%
     select(event_type_string, key, name)
   data3 <- data1 %>%
@@ -151,9 +158,9 @@ addWin <- function(data,team){
   data2 <- data %>% mutate("win" = as.logical(data[[1]]))
   for (i in 1:length(data2[[1]])){
     if(teamColor(data,i,team) == data$winning_alliance[[i]]){
-     data2$win[[i]] <- TRUE
+      data2$win[[i]] <- TRUE
     }else {
-     data2$win[[i]] <- FALSE
+      data2$win[[i]] <- FALSE
     }
   }
   return(data2)
@@ -165,8 +172,8 @@ addScore <- function(data,year,team){
   scoreRed <- c(scoreData$alliances$red$score)
   for (i in 1:length(data2[[1]])){
     if (data2$win[[i]] == TRUE){
-    data2$Alliance_Score[[i]] <- max(scoreBlue[[i]], scoreRed[[i]])
-    data2$Opponent_Score[[i]] <- min(scoreBlue[[i]], scoreRed[[i]])
+      data2$Alliance_Score[[i]] <- max(scoreBlue[[i]], scoreRed[[i]])
+      data2$Opponent_Score[[i]] <- min(scoreBlue[[i]], scoreRed[[i]])
     }else{
       data2$Alliance_Score[[i]] <- min(scoreBlue[[i]], scoreRed[[i]])
       data2$Opponent_Score[[i]] <- max(scoreBlue[[i]], scoreRed[[i]])
@@ -205,38 +212,38 @@ getTeamMatchesCustom <- function(year,team){
            filter(event_type_string != "Offseason"))
 } #Generates custom match information for a given team in a given year.
 ################################################################################
-getTeamOpponets <- function(year, team){
+getTeamOpponents <- function(year, team){
   data1 <- getTeamEvents(year, team) %>%
     select(event_code)
   data3 <- NULL
   for (i in 1:length(data1[[1]])){
-     data2 <- getEventTeamsKeys(year, data1[[1]][[i]])
-     data3 <- c(data3,data2)
+    data2 <- getEventTeamsKeys(year, data1[[1]][[i]])
+    data3 <- c(data3,data2)
   }
   data4 <- as.numeric(gsub('frc','',data3))
   data5 <- data4[order(data4)]
   data6 <- distinct(as_tibble(data5))
   return(data6)
 }
-getTeamOpponetsEvents <- function(year,team){
-  data1 <- getTeamOpponets(year,team) 
-  data2 <- NULL
-  columns <- 1
+getTeamOpponentsEvents <- function(year,team){
+  data1 <- getTeamOpponents(year,team) 
+  data1$events = NA
+
   for(i in 1:length(data1[[1]])){
-    oppEvents <- getTeamEvents(year, data1[[1]][[i]]) %>%
-      select(name, week, end_date)
+    data2 <- getTeamEvents(year, data1[[1]][[i]]) %>%
+     select(name, week, end_date)
+    data2 <- arrange(data2, week)
+    data1$events[i] <- data2 %>% select(name)
     
-    for(i in 1:length(getTeamEvents(year, data1[[1]]))){
-      data2 <- data1
-      if (length(getTeamEvents(year, data1[[1]])) > columns){
-        columns <- columns + 1
-        data1 <- data1 %>%
-          mutate(i = oppEvents[[i]])
-      }
-      
-    }
   }
-  return(data1)
+  data2 <- separate(data1, events, c("event1","event2","event3","event4","event5", "event6"), sep = ",")
+  for (i in 1:7){
+    data2[[i]] <- gsub('c\\(\\"','', data2[[i]]) 
+    data2[[i]] <- gsub('\\"','', data2[[i]])
+    data2[[i]] <- gsub('\\)','', data2[[i]]) 
+  }
+  
+  return(data2)
 }
 ################################################################################
 plotScores <- function(year, team){
@@ -249,11 +256,10 @@ plotScoresSimple <- function(year, team){
 } #Simplified version of plotScores if team has too many matches.
 ################################################################################
 
-view(getTeamOpponetsEvents(2023,8044))
-getTeamOpponetsEvents(2023,8044)
-typeof(getTeamOpponetsEvents(2023,8044))
-
-
+view(getTeamOpponents(2023,8044))
+getTeamOpponentsEvents(2023,8044)
+typeof(getTeamOpponentsEvents(2023,8044))
+write.csv(getTeamOpponentsEvents(2023,8044), file = "~Downloads/8044Ops.csv", row.names = TRUE)
 view(getEventTeamsKeys(2023, "lake"))
 getTeamEvents(2023, 8044)
 view(getFRCData("https://www.thebluealliance.com/api/v3/team/frc8044/events/2023"))
