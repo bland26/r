@@ -1,9 +1,11 @@
 
-library(plotly)
+ibrary(plotly)
+library(htmltools)
 library(jsonlite)
 library(httr)
 library(tidyverse)
 library(shiny)
+library(googlesheets4)
 
 ################################################################################
 getFRCData <- function(url) {
@@ -12,6 +14,7 @@ getFRCData <- function(url) {
   data <- jsonlite::fromJSON(json)
   return(data)
 } #Pulls dataset from Blue Alliance api.
+
 ################################################################################
 getEvents <- function(year) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/events/",
@@ -19,6 +22,7 @@ getEvents <- function(year) {
                collapse = "")
   return(getFRCData(url))
 } #Lists all events for given year
+
 ################################################################################
 getEventMatches <- function(year, event_code) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
@@ -47,6 +51,7 @@ getEventOprs2 <- function(event_code) {
   data2 <- c(data1$oprs) 
   return(data2)
 } #GetEventOprs with a different parameter format.
+
 ################################################################################
 getEventTeamsKeys <- function(year, event_code) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
@@ -56,6 +61,7 @@ getEventTeamsKeys <- function(year, event_code) {
                collapse = "")
   return(getFRCData(url))
 } #Lists team Key for a given event.
+
 ################################################################################
 getTeamsPage <- function(page) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/teams/",
@@ -77,6 +83,7 @@ getTeams <- function() {
   }
   return(teams)
 } #Generates a table with all FRC teams.
+
 ################################################################################
 getTeamData <- function(team) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
@@ -84,6 +91,7 @@ getTeamData <- function(team) {
                collapse = "")
   return(getFRCData(url))
 } #Gives Blue Allaince profile information on requested team.
+
 ################################################################################
 getTeamMatches <- function(year, team) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
@@ -134,6 +142,7 @@ getTeamEventOpr <- function(year, team, event_code){
     filter(event_key == key2)
   return(data3)
 } #Returns a given teams opr for a given event.
+
 ################################################################################
 teamTest <- function(vec,team) {
   flag <- FALSE
@@ -211,8 +220,22 @@ getTeamMatchesCustom <- function(year,team){
   return(data5 %>%
            filter(event_type_string != "Offseason"))
 } #Generates custom match information for a given team in a given year.
+
 ################################################################################
 getTeamOpponents <- function(year, team){
+  data1 <- getTeamEvents(year, team) %>%
+    select(event_code)
+  data3 <- NULL
+  for (i in 1:length(data1[[1]])){
+    data2 <- getEventTeamsKeys(year, data1[[1]][[i]])
+    data3 <- c(data3,data2)
+  }
+  data4 <- as.numeric(gsub('frc','',data3))
+  data5 <- data4[order(data4)]
+  data6 <- distinct(as_tibble(data5))
+  return(data6)
+}
+getTeamOpponents2 <- function(year, team){
   data1 <- getTeamEvents(year, team) %>%
     select(event_code)
   data3 <- NULL
@@ -245,6 +268,7 @@ getTeamOpponentsEvents <- function(year,team){
   
   return(data2)
 }
+
 ################################################################################
 plotScores <- function(year, team){
   winData <- getTeamMatchesCustom(year,team)
@@ -254,12 +278,5 @@ plotScoresSimple <- function(year, team){
   winData <- getTeamMatchesCustom(year,team)
   qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),) + xlim(10,200) + ylim(10,200)
 } #Simplified version of plotScores if team has too many matches.
-################################################################################
 
-view(getTeamOpponents(2023,8044))
-getTeamOpponentsEvents(2023,8044)
-typeof(getTeamOpponentsEvents(2023,8044))
-write.csv(getTeamOpponentsEvents(2023,8044), file = "~Downloads/8044Ops.csv", row.names = TRUE)
-view(getEventTeamsKeys(2023, "lake"))
-getTeamEvents(2023, 8044)
-view(getFRCData("https://www.thebluealliance.com/api/v3/team/frc8044/events/2023"))
+################################################################################
