@@ -1,38 +1,29 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
+library(htmltools)
 library(shiny)
-library(plotly)
 library(jsonlite)
 library(httr)
 library(tidyverse)
 
 
-# Define UI for application that draws a histogram
+# Define UI for application that draws graph
 ui <- fluidPage(
-
-            selectInput("a","Team:",c(getTeamOpponents(2023,8044))),
-            plotOutput("b")
-
+    
+    selectInput("a","Team:",c(getTeamOpponents(2022,8044))),
+    plotOutput("b")
+    
 )
 
-# Define server logic required to draw a histogram
+# Define server logic required to draw graph
 server <- function(input, output) {
-  winData <- reactive({
-  getTeamMatchesCustom(2023,input$a)
-  })
-  
-  output$b <- renderPlot({
-    ggplot(winData(), aes(x = Alliance_Score, y = Opponent_Score)) + 
-      geom_point(aes(color = factor(win),shape = factor(str_trunc(name, 20))))+ 
-      xlim(10,200) + ylim(10,200) + labs (shape = "Event") + labs (color = "Results")
-  })
+    winData <- reactive({
+        getTeamMatchesCustom(2022,input$a)
+    })
+    
+    output$b <- renderPlot({
+        ggplot(winData(), aes(x = Alliance_Score, y = Opponent_Score))  +
+            geom_point(aes(color = factor(win),shape = factor(str_trunc(name, 20)), size = 1))+ 
+            xlim(10,200) + ylim(10,200) + labs (shape = "Event") + labs (color = "Results")
+    })
     
 }
 
