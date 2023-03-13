@@ -9,25 +9,30 @@ library(googlesheets4)
 
 gs4_deauth()
 
-scoutData <- data.frame(read_sheet("https://docs.google.com/spreadsheets/d/1cOkGLcwYopqgx9BQdjPJ8S90yZd8fZ-tP4H1sXhz9JI/edit?usp=sharing"))
-
+scoutData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1KaFAcS7JmYIV7Ak7S6D9nYr3myjhurL82HYuNRCoRuU/edit?usp=sharing", sheet = 2))
+scoutData <- scoutData %>% filter(!is.na(robot))
 rangeAM  <- 3
-rangeANS <- max(scoutData[10])
-rangeTNS <- max(scoutData[14])
-rangeL   <- max(scoutData[15])
-rangeCST <- 2
+rangeANS <- max(scoutData[3])
+rangeTNS <- max(scoutData[4])
+rangeCST <- 3
 rangeDS  <- 5
 rangeC   <- 5
-selection <- c(6,10,14,15,17,18,19)
-ranges <- c(rangeAM, rangeANS, rangeTNS, rangeL, rangeCST, rangeDS, rangeC)
+selection <- c(2:7)
+ranges <- c(rangeAM, rangeANS, rangeTNS,  rangeCST, rangeDS, rangeC)
 
 for (i in 1:length(ranges)){
   x <- selection[i]
   scoutData[x] <- scoutData[x] / ranges[i]
 }
 
+comData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1KaFAcS7JmYIV7Ak7S6D9nYr3myjhurL82HYuNRCoRuU/edit?usp=sharing", sheet = 3))
+comData <- comData[order(as.numeric(comData$robot)),]
+#oprData <- getEventOprs3("2023mslr")
+#oprData<- oprData[order(as.numeric(oprData$name)),]
+#oprData[2] <- oprData[2]/max(oprData[2])
 
-oppData<- c(gsub('frc','',getEventTeamsKeys(2023,"mslr")))
+oppData<- as.numeric(gsub('frc','',getEventTeamsKeys(2023,"mslr")))
+oppData<- oppData[order(oppData)]
 
 ################################################################################
 getFRCData <- function(url) {
@@ -73,7 +78,17 @@ getEventOprs2 <- function(event_code) {
   data2 <- c(data1$oprs) 
   return(data2)
 } #GetEventOprs with a different parameter format.
-
+getEventOprs3 <- function(event_code) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
+                 event_code,
+                 "/oprs"),
+               collapse = "")
+  data1 <- as_tibble(getFRCData(url), rownames = "teams")
+  data2 <- data.frame(data1$oprs) 
+  data3 <- data2 %>% pivot_longer(cols = everything())
+  data3[[1]] <- gsub('frc','',data3[[1]])
+  return(data3)
+} #GetEventOprs with a different parameter format.
 ################################################################################
 getEventTeamsKeys <- function(year, event_code) {
   url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
@@ -164,7 +179,16 @@ getTeamEventOpr <- function(year, team, event_code){
     filter(event_key == key2)
   return(data3)
 } #Returns a given teams opr for a given event.
-
+getTeamEventOpr2 <- function(year, team, event_code){
+  key1 <- paste(c("frc",team),collapse = "")
+  key2 <- paste(c(year, event_code),collapse = "")
+  data1 <- getTeamEventForOpr(year,team)
+  opr <- getEventOprs(year, event_code)[[key1]]
+  data2 <- data1 %>% mutate("OPR" = opr)
+  data3 <- data2 %>%
+    filter(event_key == key2)
+  return(opr)
+} #Returns a given teams opr for a given event.
 ################################################################################
 teamTest <- function(vec,team) {
   flag <- FALSE
