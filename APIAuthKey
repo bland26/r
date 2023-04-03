@@ -1,5 +1,5 @@
 frc <- httr::GET("https://www.thebluealliance.com/api/v3/status", 
-                 httr::add_headers("X-TBA-Auth-Key" = "7uCOWXlId3hYREjr5VsLJWmzhOVX29V9buThele7yIcbBBf6qzhswX7LYpvsVEfX"))
+                 httr::add_headers("X-TBA-Auth-Key" = "enter your auth key"))
 
 str(frc$content)
 
