@@ -4,12 +4,17 @@ library(jsonlite)
 library(httr)
 library(tidyverse)
 library(shiny)
+
 library(googledrive)
 library(googlesheets4)
 
 gs4_deauth()
 
-scoutData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1KaFAcS7JmYIV7Ak7S6D9nYr3myjhurL82HYuNRCoRuU/edit?usp=sharing", sheet = 2))
+#currently much of the data cleaning is being done in a google sheet that was previously used and brought into a data sheet using the code below.
+# link to blank version of the google sheet https://docs.google.com/spreadsheets/d/1XV8zApE440LB6JbveOC7fTlbIizpyhZns3B6XPeu8Cw/edit?usp=sharing
+
+#import and normalize a google sheet containing data for full season
+scoutData <- data.frame(range_read("link to a google sheet containing data for full season"))
 scoutData <- scoutData %>% filter(!is.na(robot))
 rangeAM  <- 3
 rangeANS <- max(scoutData[3])
@@ -25,18 +30,108 @@ for (i in 1:length(ranges)){
   scoutData[x] <- scoutData[x] / ranges[i]
 }
 
-comData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1KaFAcS7JmYIV7Ak7S6D9nYr3myjhurL82HYuNRCoRuU/edit?usp=sharing", sheet = 3))
-comData <- comData[order(as.numeric(comData$robot)),]
-#oprData <- getEventOprs3("2023mslr")
-#oprData<- oprData[order(as.numeric(oprData$name)),]
-#oprData[2] <- oprData[2]/max(oprData[2])
+#import and normalize a google sheet containing data for Bayou Regional
+scoutDataB <- data.frame(range_read("link to a google sheet containing data for Bayou Regional"))
+scoutDataB <- scoutDataB %>% filter(!is.na(robot))
+rangeAM  <- 3
+rangeANS <- max(scoutDataB[3])
+rangeTNS <- max(scoutDataB[4])
+rangeCST <- 3
+rangeDS  <- 5
+rangeC   <- 5
+selection <- c(2:7)
+ranges <- c(rangeAM, rangeANS, rangeTNS,  rangeCST, rangeDS, rangeC)
 
-oppData<- as.numeric(gsub('frc','',getEventTeamsKeys(2023,"mslr")))
-oppData<- oppData[order(oppData)]
+for (i in 1:length(ranges)){
+  x <- selection[i]
+  scoutDataB[x] <- scoutDataB[x] / ranges[i]
+}
+
+#import and normalize a google sheet containing data for Magnolia Regional
+scoutDataM <- data.frame(range_read("link to a google sheet containing data for Magnolia Regional"))
+scoutDataM <- scoutDataM %>% filter(!is.na(robot))
+rangeAM  <- 3
+rangeANS <- max(scoutDataM[3])
+rangeTNS <- max(scoutDataM[4])
+rangeCST <- 3
+rangeDS  <- 5
+rangeC   <- 5
+selection <- c(2:7)
+ranges <- c(rangeAM, rangeANS, rangeTNS,  rangeCST, rangeDS, rangeC)
+
+for (i in 1:length(ranges)){
+  x <- selection[i]
+  scoutDataM[x] <- scoutDataM[x] / ranges[i]
+}
+
+#imports comments from google sheet
+comData <- data.frame(range_read("link to a google sheet containing data for Full Season"))
+comData <- comData[order(as.numeric(comData$robot)),]
+
+comDataM <- data.frame(range_read("link to a google sheet containing data for Magnolia Regional"))
+comDataM <- comDataM[order(as.numeric(comDataM$robot)),]
+
+comDataB <- data.frame(range_read("link to a google sheet containing data for Bayou Regional"))
+comDataB <- comDataB[order(as.numeric(comDataB$robot)),]
+
+
+#pulls opr data from the Blue Alliance api
+oprDataM <- getEventOprs3("2023mslr")
+
+oprDataM <- oprDataM[order(as.numeric(oprDataM$name)),]
+oprDataM[2] <- oprDataM[2]/max(oprDataM[2])
+
+
+oprDataB <- getEventOprs3("2023lake")
+
+oprDataB <- oprDataB[order(as.numeric(oprDataB$name)),]
+oprDataB[2] <- oprDataB[2]/max(oprDataB[2])
+
+oprData <- rbind(oprDataM, oprDataB)
+oprData[2] <- oprData[2]/max(oprData[2])
+oprData <- data.frame("name"=c(oprData$name),
+                      "value"=c(oprData$value))
+oprData <- oprData %>% group_by(name) %>% summarize(value=mean(value))
+oprData <- oprData[order(as.numeric(oprData$name)),]
+
+#pulls opponent info from the Blue Alliance api
+oppDataM<- as.numeric(gsub('frc','',getEventTeamsKeys(2023,"mslr")))
+oppDataM<- oppDataM[order(oppDataM)]
+
+oppDataB<- as.numeric(gsub('frc','',getEventTeamsKeys(2023,"lake")))
+oppDataB<- oppDataB[order(oppDataB)]
+
+oppData<- getTeamOpponents(2023,8044)
+
+
+
+
+oppName<- as_tibble(as.character(oppDataM))
+oppName$name = NA
+for(i in 1:length(oppName$value)){
+  key <- getTeamData(oppName$value[i])
+  oppName$name[i] <- key$nickname
+}
+oppName2<- as_tibble(as.character(oppDataB))
+oppName2$name = NA
+for(i in 1:length(oppName2$value)){
+  key <- getTeamData(oppName2$value[i])
+  oppName2$name[i] <- key$nickname
+}
+oppName3<- c(oppDataM,oppDataB)
+oppName3<- oppName3[order(oppName3)]
+oppName3<- as_tibble(as.character(oppName3))
+oppName3$name = NA
+for(i in 1:length(oppName3$value)){
+  key <- getTeamData(oppName3$value[i])
+  oppName3$name[i] <- key$nickname
+}
+oppName3<- distinct(oppName3)
+
 
 ################################################################################
 getFRCData <- function(url) {
-  req <- httr::GET(url, httr::add_headers("X-TBA-Auth-Key" = "7uCOWXlId3hYREjr5VsLJWmzhOVX29V9buThele7yIcbBBf6qzhswX7LYpvsVEfX"))
+  req <- httr::GET(url, httr::add_headers("X-TBA-Auth-Key" = "your own api auth key"))
   json <- httr::content(req, as = "text", encoding = "UTF-8")
   data <- jsonlite::fromJSON(json)
   return(data)
@@ -305,11 +400,11 @@ getTeamOpponentsEvents <- function(year,team){
 ################################################################################
 plotScores <- function(year, team){
   winData <- getTeamMatchesCustom(year,team)
-  qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),shape = factor(str_trunc(name, 20)), main = team) + xlim(10,200) + ylim(10,200) + labs (shape = "Event") + labs (color = "Results")
+  qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),shape = factor(str_trunc(name, 20)), main = team) + xlim(0,150) + ylim(0,150) + labs (shape = "Event") + labs (color = "Results")
 } #Generates a graph plotting a teams performance in a given year.
 plotScoresSimple <- function(year, team){
   winData <- getTeamMatchesCustom(year,team)
-  qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),) + xlim(10,200) + ylim(10,200)
+  qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),) + xlim(0,150) + ylim(0,150)
 } #Simplified version of plotScores if team has too many matches.
 
 ################################################################################
