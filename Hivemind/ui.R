@@ -1,5 +1,5 @@
 fluidPage(
-  titlePanel(title=div(img(src='https://rstudio.brbytes.org/rserver1/files/Hivemind/www/denhamVenom5.jpg',height = 50, width = 50), "Hivemind")),
+  titlePanel("Hivemind"),
   tabsetPanel(
     tabPanel("Full Season",
         tabsetPanel(
