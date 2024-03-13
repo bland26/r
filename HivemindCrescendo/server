@@ -1,0 +1,590 @@
+
+function(input, output, session) {
+    
+
+
+    selectedData1 <- reactive({
+        scoutData %>%
+            filter(robot %in% input$teams )
+    })
+
+    selectedData2 <- reactive({
+        selectedData1() %>%
+            select(2:7)
+    })
+
+    oprSelect <- reactive({
+        oprData %>%
+            filter(name %in% input$teams)
+    })
+
+    selectedData3 <- reactive({
+        selectedData2() %>% mutate("opr" = oprSelect()[[2]])
+    })
+
+
+
+
+
+    # Combine the selected variables into a new data frame
+    output$plot1 <- renderPlotly({
+
+        plot_ly(
+            type = 'scatterpolar',
+            mode = "closest",
+            fill = 'toself'
+        ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[1,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                name = selectedData1()[1,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[2,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[2,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[3,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[3,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[4,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[4,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[5,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[5,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[6,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[6,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[7,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[7,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[8,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[8,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[9,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[9,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3()[10,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1()[10,1]
+            ) %>%
+            layout(
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(-0.1,1)
+                    )
+                ),
+
+                showlegend=TRUE
+
+
+            )
+
+    })
+
+
+
+    
+    output$mr <- renderText({
+        picOut <- picData %>% filter(robot %in% input$picTeam)
+        picOut <- picOut %>% select(3)
+        for(i in 1:length(picOut[[1]])){
+            src = picOut$Auto.Image[[i]]
+            picOut$Auto.Image[[i]] <- paste('<img src=',src, ' width="300" height="200" ', '>', sep = "")
+        }
+        picOut <- paste(picOut, sep = '<br/>')
+        picOut <- gsub("c\\(", "",picOut)
+        picOut <- gsub("\"", "" , picOut)
+        picOut <- gsub(")", "", picOut)
+        picOut <- gsub(",", "<br><br>", picOut)
+        picOut <- gsub("\\\\300\\\\","'300'", picOut)
+        picOut <- gsub("\\\\200\\\\","'200'", picOut)
+    })
+
+    output$com <- renderUI({
+       comOut <- comData %>% filter(robot %in% input$comTeam)
+       comOut <- comOut %>% select(-1)
+       comOut <- comOut %>% unite("comment", na.rm = TRUE)
+       comOut <- paste(comOut, sep = '<br/>')
+       comOut <- gsub("c\\(", "",comOut)
+       comOut <- gsub("\"", "" , comOut)
+       comOut <- gsub(")", "", comOut)
+       comOut <- gsub(",", "<br><br>", comOut)
+       comOut <- gsub("_",", ", comOut)
+       comOut <- gsub(":,",":", comOut)
+       HTML(comOut)
+
+    })
+    
+    output$pit <- renderText({
+        pitOut <- pitData %>% filter(Team %in% input$pitTeam)
+        pitOut <- pitOut %>% select(3:8)
+        for(i in 1:length(pitOut[[1]])){
+            src = pitOut$Robot.URL[[i]]
+            pitOut$Robot.URL[[i]] <- paste('<img src=',src, ' width="300" height="400" ', '>', sep = "")
+        }
+        pitOut <- paste(pitOut$Robot.URL,
+                        "Auto Start Location:",pitOut$Auto.Start.Location,"<br/>",
+                        "Auto Ability:",pitOut$Auto.Ability,"<br/>",
+                        "Drive Train:",pitOut$Drive.Train,"<br/>",
+                        "Climb Time:",pitOut$Climb.Time,"<br/>",
+                        "Comments:",pitOut$Comments,"<br/>",
+                         sep = '<br/>')
+        pitOut <- gsub("\\\\300\\\\","'300'", pitOut)
+        pitOut <- gsub("\\\\400\\\\","'400'", pitOut)
+    })
+
+    selectedData1M <- reactive({
+        scoutDataM %>%
+            filter(robot %in% input$teamsM )
+    })
+    
+    selectedData2M <- reactive({
+        selectedData1M() %>%
+            select(2:7) 
+    })
+    
+    oprSelectM <- reactive({
+        oprDataM %>%
+            filter(name %in% input$teamsM)
+    })
+    
+    selectedData3M <- reactive({
+        selectedData2M() %>% mutate("opr" = oprSelectM()[[2]])
+    })
+    
+    
+    
+    
+    
+    # Combine the selected variables into a new data frame
+    output$plotM <- renderPlotly({
+        
+        plot_ly(
+            type = 'scatterpolar',
+            mode = "closest",
+            fill = 'toself'
+        ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[1,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                name = selectedData1M()[1,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[2,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[2,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[3,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[3,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[4,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[4,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[5,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[5,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[6,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[6,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[7,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[7,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[8,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[8,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[9,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[9,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3M()[10,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1M()[10,1]
+            ) %>%
+            layout(
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(-0.1,1)
+                    )
+                ),
+                
+                showlegend=TRUE
+                
+                
+            )
+        
+    })
+
+    output$mrM <- renderText({
+        picOut <- picDataM %>% filter(robot %in% input$picTeamM)
+        picOut <- picOut %>% select(3)
+        for(i in 1:length(picOut[[1]])){
+            src = picOut$Auto.Image[[i]]
+            picOut$Auto.Image[[i]] <- paste('<img src=',src, ' width="300" height="200" ', '>', sep = "")
+        }
+        picOut <- paste(picOut, sep = '<br/>')
+        picOut <- gsub("c\\(", "",picOut)
+        picOut <- gsub("\"", "" , picOut)
+        picOut <- gsub(")", "", picOut)
+        picOut <- gsub(",", "<br><br>", picOut)
+        picOut <- gsub("\\\\300\\\\","'300'", picOut)
+        picOut <- gsub("\\\\200\\\\","'200'", picOut)
+    })
+    
+    output$pitM <- renderText({
+        pitOutM <- pitDataM %>% filter(Team %in% input$pitTeamM)
+        pitOutM <- pitOutM %>% select(3:8)
+        for(i in 1:length(pitOutM[[1]])){
+            src = pitOutM$Robot.URL[[i]]
+            pitOutM$Robot.URL[[i]] <- paste('<img src=',src, ' width="300" height="400" ', '>', sep = "")
+        }
+        pitOutM <- paste(pitOutM$Robot.URL,
+                         "Auto Start Location:",pitOutM$Auto.Start.Location,"<br/>",
+                         "Auto Ability:",pitOutM$Auto.Ability,"<br/>",
+                         "Drive Train:",pitOutM$Drive.Train,"<br/>",
+                         "Climb Time:",pitOutM$Climb.Time,"<br/>",
+                         "Comments:",pitOutM$Comments,"<br/>",
+                         sep = '<br/>')
+        pitOutM <- gsub("\\\\300\\\\","'300'", pitOutM)
+        pitOutM <- gsub("\\\\400\\\\","'400'", pitOutM)
+    })
+    
+    output$comM <- renderUI({ 
+        comOut <- comDataM %>% filter(robot %in% input$comTeamM)
+        comOut <- comOut %>% select(-1)
+        comOut <- comOut %>% unite("comment", na.rm = TRUE)
+        comOut <- paste(comOut, sep = '<br/>')
+        comOut <- gsub("c\\(", "",comOut)
+        comOut <- gsub("\"", "" , comOut)
+        comOut <- gsub(")", "", comOut)
+        comOut <- gsub(",", "<br><br>", comOut)
+        comOut <- gsub("_",", ", comOut)
+        comOut <- gsub(":,",":", comOut)
+        HTML(comOut)
+        
+    })
+
+  
+    
+    selectedData1R <- reactive({
+        scoutDataR %>%
+            filter(robot %in% input$teamsR )
+    })
+    
+    selectedData2R <- reactive({
+        selectedData1R() %>%
+            select(2:7) 
+    })
+    
+    oprSelectR <- reactive({
+        oprDataR %>%
+            filter(name %in% input$teamsR)
+    })
+
+    selectedData3R <- reactive({
+        selectedData2R() %>% mutate("opr" = oprSelectR()[[2]])
+    })
+    
+    
+    
+    
+    
+    # Combine the selected variables into a new data frame
+    output$plotR <- renderPlotly({
+        
+        plot_ly(
+            type = 'scatterpolar',
+            mode = "closest",
+            fill = 'toself'
+        ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[1,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                name = selectedData1R()[1,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[2,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[2,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[3,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[3,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[4,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[4,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[5,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[5,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[6,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[6,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[7,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[7,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[8,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[8,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[9,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[9,1]
+            ) %>%
+            add_trace(
+                r = as.matrix(selectedData3R()[10,]),
+                theta = c("Auto Movement",  "Auto Score",  "Tele Score", "Notes Passed"
+                          , "Endgame Score", "Driver Skill" ,"OPR"),
+                showlegend = TRUE,
+                mode = "markers",
+                visible="legendonly",
+                name = selectedData1R()[10,1]
+            ) %>%
+            layout(
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(-0.1,1)
+                    )
+                ),
+                
+                showlegend=TRUE
+                
+                
+            )
+        
+    })
+    
+    
+
+    
+    output$mrR <- renderText({
+        picOut <- picDataR %>% filter(robot %in% input$picTeamR)
+        picOut <- picOut %>% select(3)
+        for(i in 1:length(picOut[[1]])){
+            src = picOut$Auto.Image[[i]]
+            picOut$Auto.Image[[i]] <- paste('<img src=',src, ' width="300" height="200" ', '>', sep = "")
+        }
+        picOut <- paste(picOut, sep = '<br/>')
+        picOut <- gsub("c\\(", "",picOut)
+        picOut <- gsub("\"", "" , picOut)
+        picOut <- gsub(")", "", picOut)
+        picOut <- gsub(",", "<br><br>", picOut)
+        picOut <- gsub("\\\\300\\\\","'300'", picOut)
+        picOut <- gsub("\\\\200\\\\","'200'", picOut)
+    })
+    
+    output$pitR <- renderText({
+        pitOutR <- pitDataR %>% filter(Team %in% input$pitTeamR)
+        pitOutR <- pitOutR %>% select(3:8)
+        for(i in 1:length(pitOutR[[1]])){
+            src = pitOutR$Robot.URL[[i]]
+            pitOutR$Robot.URL[[i]] <- paste('<img src=',src, ' width="300" height="400" ', '>', sep = "")
+        }
+        pitOutR <- paste(pitOutR$Robot.URL,
+                        "Auto Start Location:",pitOutR$Auto.Start.Location,"<br/>",
+                        "Auto Ability:",pitOutR$Auto.Ability,"<br/>",
+                        "Drive Train:",pitOutR$Drive.Train,"<br/>",
+                        "Climb Time:",pitOutR$Climb.Time,"<br/>",
+                        "Comments:",pitOutR$Comments,"<br/>",
+                        sep = '<br/>')
+        pitOutR <- gsub("\\\\300\\\\","'300'", pitOutR)
+        pitOutR <- gsub("\\\\400\\\\","'400'", pitOutR)
+    })
+    
+    output$comR <- renderUI({ 
+        comOut <- comDataR %>% filter(robot %in% input$comTeamR)
+        comOut <- comOut %>% select(-1)
+        comOut <- comOut %>% unite("comment", na.rm = TRUE)
+        comOut <- paste(comOut, sep = '<br/>')
+        comOut <- gsub("c\\(", "",comOut)
+        comOut <- gsub("\"", "" , comOut)
+        comOut <- gsub(")", "", comOut)
+        comOut <- gsub(",", "<br><br>", comOut)
+        comOut <- gsub("_",", ", comOut)
+        comOut <- gsub(":,",":", comOut)
+        HTML(comOut)
+        
+    })
+    
+    scoreDataR <- reactive({
+        scoutDataR2 %>%
+            filter(team %in% input$bR )
+    })
+    
+    scoreDataRauto <- reactive({
+        scoutDataRauto %>%
+            filter(team %in% input$bR ) 
+    })
+    scoreDataRtele <- reactive({
+        scoutDataRtele %>%
+            filter(team %in% input$bR ) 
+    })
+
+    output$scorePlotR <- renderPlot({
+        ggplot(scoreDataR(), aes(fill = period, x = match ,y = scored)) + geom_bar(position="dodge", stat="identity") + scale_fill_manual(values=c("gold",
+                                                                                                                                                   "purple"))+
+            geom_hline(yintercept = mean(scoreDataRtele()$scored), color="purple") +
+            geom_hline(yintercept = mean(scoreDataRauto()$scored), color="gold")
+    })
+    
+    output$teamlist <- renderTable({oppName3})
+    output$teamlistM <- renderTable({oppName})
+    output$teamlistR <- renderTable({oppName4})
+}
