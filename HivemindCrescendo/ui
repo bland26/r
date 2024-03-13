@@ -1,0 +1,230 @@
+fluidPage(
+  titlePanel(title=div(img(src='  https://tse3.mm.bing.net/th/id/OIP.DZVqJx3X9XGAGmXd-gqOdgAAAA?rs=1&pid=ImgDetMain',height = 50, width = 50), "Hivemind")),
+  tabsetPanel(
+    tabPanel("Full Season",
+        tabsetPanel(
+          tabPanel("Teams", fluid = TRUE,
+
+                  tableOutput("teamlist")
+
+                   ),
+          tabPanel("Pit Scout", fluid = TRUE,
+                   pageWithSidebar(
+                     headerPanel('Pit'),
+                     sidebarPanel(width = 3,
+                                  selectInput(inputId = 'pitTeam', label = 'List of Teams:',pitData$Team,
+                                              
+                                              selected = pitData %>% filter(Team %in% 8044 )
+                                  ),
+                                  
+                                  submitButton("Update filters")
+                     ),
+                     mainPanel(
+                       column(8, htmlOutput("pit", width = 900, height = 700))
+                       
+                     ))),
+          tabPanel("Polar", fluid = TRUE,
+                   pageWithSidebar(
+                     headerPanel('Scouting Report'),
+                     sidebarPanel(width = 4,
+                                  checkboxGroupInput(inputId = "teams",
+                                                     label = 'Choose up to 10 teams:', choiceNames = c(scoutData$robot),
+                                                     choiceValues = c(scoutData$robot),
+                                                     selected = 8044
+
+                                                     ,inline=TRUE),
+                                  submitButton("Update filters")
+                     ),
+                     mainPanel(
+                       column(8, plotlyOutput("plot1", width = 900, height=700)
+
+
+                       )
+
+                     )
+                   )
+          ),
+          tabPanel("Auto Paths", fluid = TRUE,
+                   pageWithSidebar(
+                     headerPanel('Auto'),
+                     sidebarPanel(width = 3,
+                                  selectInput(inputId = 'picTeam', label = 'List of Teams:',picData$robot,
+                                              
+                                              selected = picData %>% filter(robot %in% 8044 )
+                                              ),
+
+                                  submitButton("Update filters")
+                         ),
+                     mainPanel(
+                     column(8, htmlOutput("mr", width = 900, height = 700))
+
+                     ))),
+          tabPanel("Comments", fluid = TRUE,
+                   pageWithSidebar(
+                     headerPanel('Scout Comments'),
+                     sidebarPanel(width = 3,
+                                  selectInput(inputId = 'comTeam', label = 'List of Teams:',comData$robot,
+
+                                              selected = comData %>% filter(robot %in% 8044 )
+                                              ),
+
+
+                                  submitButton("Update filters")
+                     ),
+                     mainPanel(
+                        htmlOutput("com", inline = FALSE))
+                   ))
+         )),
+    tabPanel("Arkansas Regional",
+             tabsetPanel(
+               tabPanel("Teams", fluid = TRUE,
+                        
+                        tableOutput("teamlistR")
+                        
+               ),
+               tabPanel("Pit Scout", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Pit'),
+                          sidebarPanel(width = 3,
+                                       selectInput(inputId = 'pitTeamR', label = 'List of Teams:',pitDataR$Team,
+                                                   
+                                                   selected = pitDataR %>% filter(Team %in% 8044 )
+                                       ),
+                                       
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            column(8, htmlOutput("pitR", width = 900, height = 700))
+                            
+                          ))),
+               tabPanel("Polar", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Scouting Report'),
+                          sidebarPanel(width = 4,
+                                       checkboxGroupInput(inputId = "teamsR",
+                                                          label = 'Choose up to 10 teams:', choiceNames = c(scoutDataR$robot),
+                                                          choiceValues = c(scoutDataR$robot),
+                                                          selected = 8044
+                                                          
+                                                          ,inline=TRUE),
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            column(8, plotlyOutput("plotR", width = 900, height=700)
+                                   
+                                   
+                            )
+                            
+                          )
+                        )
+               ),
+               tabPanel("Auto Paths", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Auto'),
+                          sidebarPanel(width = 3,
+                                       selectInput(inputId = 'picTeamR', label = 'List of Teams:',picDataR$robot,
+                                                   
+                                                   selected = picDataR %>% filter(robot %in% 8044 )
+                                       ),
+                                       
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            column(8, htmlOutput("mrR", width = 900, height = 700))
+                            
+                          ))),
+               
+               tabPanel("Comments", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Scout Comments'),
+                          sidebarPanel(width = 3,
+                                       selectInput(inputId = 'comTeamR', label = 'List of Teams:',comDataR$robot,
+                                                   
+                                                   selected = comDataR %>% filter(robot %in% 8044 )
+                                       ),
+                                       
+                                       
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            htmlOutput("comR", inline = FALSE))
+                        ))
+             )),
+    tabPanel("Magnolia Regional",
+             tabsetPanel(
+               tabPanel("Teams", fluid = TRUE,
+                        
+                        tableOutput("teamlistM")
+                        
+               ),
+               tabPanel("Pit Scout", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Pit'),
+                          sidebarPanel(width = 3,
+                                       selectInput(inputId = 'pitTeamM', label = 'List of Teams:',pitDataM$Team,
+                                                   
+                                                   selected = pitDataM %>% filter(Team %in% 8044 )
+                                       ),
+                                       
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            column(8, htmlOutput("pitM", width = 900, height = 700))
+                            
+                          ))),
+               tabPanel("Polar", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Scouting Report'),
+                          sidebarPanel(width = 4,
+                                       checkboxGroupInput(inputId = "teamsM",
+                                                          label = 'Choose up to 10 teams:', choiceNames = c(scoutDataM$robot),
+                                                          choiceValues = c(scoutDataM$robot),
+                                                          selected = 8044
+                                                          
+                                                          ,inline=TRUE),
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            column(8, plotlyOutput("plotM", width = 900, height=700)
+                                   
+                                   
+                            )
+                            
+                          )
+                        )
+               ),
+               tabPanel("Auto Paths", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Auto'),
+                          sidebarPanel(width = 3,
+                                       selectInput(inputId = 'picTeamM', label = 'List of Teams:',picDataM$robot,
+                                                   
+                                                   selected = picDataM %>% filter(robot %in% 8044 )
+                                       ),
+                                       
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            column(8, htmlOutput("mrM", width = 900, height = 700))
+                            
+                          ))),
+               
+               tabPanel("Comments", fluid = TRUE,
+                        pageWithSidebar(
+                          headerPanel('Scout Comments'),
+                          sidebarPanel(width = 3,
+                                       selectInput(inputId = 'comTeamM', label = 'List of Teams:',comDataM$robot,
+                                                   
+                                                   selected = comDataM %>% filter(robot %in% 8044 )
+                                       ),
+                                       
+                                       
+                                       submitButton("Update filters")
+                          ),
+                          mainPanel(
+                            htmlOutput("comM", inline = FALSE))
+                        ))
+             ))
+
+    )
+)
