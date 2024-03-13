@@ -1,0 +1,433 @@
+library(plotly)
+library(htmltools)
+library(jsonlite)
+library(httr)
+library(tidyverse)
+library(shiny)
+
+
+library(googledrive)
+library(googlesheets4)
+
+################################################################################
+getFRCData <- function(url) {
+  req <- httr::GET(url, httr::add_headers("X-TBA-Auth-Key" = "ENTER KEY HERE"))
+  json <- httr::content(req, as = "text", encoding = "UTF-8")
+  data <- jsonlite::fromJSON(json)
+  return(data)
+} #Pulls dataset from Blue Alliance api.
+
+################################################################################
+getEvents <- function(year) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/events/",
+                 year),
+               collapse = "")
+  return(getFRCData(url))
+} #Lists all events for given year
+
+################################################################################
+getEventMatches <- function(year, event_code) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
+                 year,
+                 event_code,
+                 "/matches"),
+               collapse = "")
+  return(getFRCData(url))
+} #Lists all Matches for a given event.
+getEventOprs <- function(year, event_code) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
+                 year,
+                 event_code,
+                 "/oprs"),
+               collapse = "")
+  data1 <- as_tibble(getFRCData(url), rownames = "teams")
+  data2 <- c(data1$oprs) 
+  return(data2)
+} #Lists each teams OPR for a given event.
+getEventOprs2 <- function(event_code) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
+                 event_code,
+                 "/oprs"),
+               collapse = "")
+  data1 <- as_tibble(getFRCData(url), rownames = "teams")
+  data2 <- c(data1$oprs) 
+  return(data2)
+} #GetEventOprs with a different parameter format.
+getEventOprs3 <- function(event_code) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
+                 event_code,
+                 "/oprs"),
+               collapse = "")
+  data1 <- as_tibble(getFRCData(url), rownames = "teams")
+  data2 <- data.frame(data1$oprs) 
+  data3 <- data2 %>% pivot_longer(cols = everything())
+  data3[[1]] <- gsub('frc','',data3[[1]])
+  return(data3)
+} #GetEventOprs with a different parameter format.
+
+################################################################################
+getEventTeamsKeys <- function(year, event_code) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/event/",
+                 year,
+                 event_code,
+                 "/teams/keys"),
+               collapse = "")
+  return(getFRCData(url))
+} #Lists team Key for a given event.
+
+################################################################################
+getTeamsPage <- function(page) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/teams/",
+                 page),
+               collapse = "")
+  print(url)
+  return(getFRCData(url))
+} #Requests data used for getTeams.
+getTeams <- function() {
+  page = 0
+  teams = tibble()
+  while(TRUE) {
+    new_teams <- getTeamsPage(page)
+    if(length(new_teams) == 0) {
+      break
+    }
+    teams <- bind_rows(teams, new_teams)
+    page <- page + 1
+  }
+  return(teams)
+} #Generates a table with all FRC teams.
+
+################################################################################
+getTeamData <- function(team) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
+                 team),
+               collapse = "")
+  return(getFRCData(url))
+} #Gives Blue Allaince profile information on requested team.
+
+################################################################################
+getTeamMatches <- function(year, team) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
+                 team,"/matches/",year),
+               collapse = "")
+  return(getFRCData(url))
+} #Lists full match information for team in a given year.
+getTeamMatchesSimple <- function(year, team) {
+  url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
+                 team,"/matches/",year,"/simple"),
+               collapse = "")
+  return(getFRCData(url))
+} #Lists abridged important match information for a team in a given year.
+getTeamEvents <- function(year, team){
+  url <- paste(c("https://www.thebluealliance.com/api/v3/team/frc",
+                 team,"/events/",year),
+               collapse = "")
+  return(getFRCData(url))
+} #Lists full event information for team in a given year.
+getTeamEventForOpr <- function(year, team){
+  data1 <- distinct(getTeamMatchesSimple(year, team) %>%
+                      select("event_key"))
+  data2 <- getEvents(year) %>%
+    select(event_type_string, key, name)
+  data3 <- data1 %>%
+    left_join(data2, by = c("event_key" = "key"))
+  return(data3)
+  
+} #Lists events given team participated in, formated for getTeamOpr.
+getTeamOpr <- function(year, team){
+  key <- paste(c("frc",team),collapse = "")
+  data1 <- getTeamEventForOpr(year,team)
+  opr <- vector("character",1)
+  for (i in 1:length(data1$event_key)){
+    eventKey <- data1$event_key[i]
+    opr[[i]] <- getEventOprs2(eventKey)[[key]]
+  }
+  data2 <- data1 %>% mutate("OPR" = opr)
+  return(data2)
+} #lists given teams opr at each event during a given year.
+getTeamEventOpr <- function(year, team, event_code){
+  key1 <- paste(c("frc",team),collapse = "")
+  key2 <- paste(c(year, event_code),collapse = "")
+  data1 <- getTeamEventForOpr(year,team)
+  opr <- getEventOprs(year, event_code)[[key1]]
+  data2 <- data1 %>% mutate("OPR" = opr)
+  data3 <- data2 %>%
+    filter(event_key == key2)
+  return(data3)
+} #Returns a given teams opr for a given event.
+getTeamEventOpr2 <- function(year, team, event_code){
+  key1 <- paste(c("frc",team),collapse = "")
+  key2 <- paste(c(year, event_code),collapse = "")
+  data1 <- getTeamEventForOpr(year,team)
+  opr <- getEventOprs(year, event_code)[[key1]]
+  data2 <- data1 %>% mutate("OPR" = opr)
+  data3 <- data2 %>%
+    filter(event_key == key2)
+  return(opr)
+} #Returns a given teams opr for a given event.
+################################################################################
+teamTest <- function(vec,team) {
+  flag <- FALSE
+  for (i in 1:length(vec)){
+    if(vec[i] == paste(c("frc",team),collapse = "")){
+      flag <- TRUE
+    }
+  }
+  return(flag)
+} #formatting for GetTeamMatchesCustom
+teamColor <- function(data,row,team){
+  color <- "fail"
+  if(teamTest(data$alliances$blue$team_keys[[row]],team) == TRUE){
+    color <- "blue"
+  }
+  if(teamTest(data$alliances$red$team_keys[[row]],team) == TRUE){
+    color <- "red"
+  }
+  return(color)
+} #formatting for GetTeamMatchesCustom
+addWin <- function(data,team){
+  data2 <- data %>% mutate("win" = as.logical(data[[1]]))
+  for (i in 1:length(data2[[1]])){
+    if(teamColor(data,i,team) == data$winning_alliance[[i]]){
+      data2$win[[i]] <- TRUE
+    }else {
+      data2$win[[i]] <- FALSE
+    }
+  }
+  return(data2)
+} #formatting for GetTeamMatchesCustom
+addScore <- function(data,year,team){
+  data2 <- data %>% mutate("Alliance_Score" = data[[1]], "Opponent_Score" = data[[1]])
+  scoreData <- getTeamMatches(year, team)
+  scoreBlue <- c(scoreData$alliances$blue$score)
+  scoreRed <- c(scoreData$alliances$red$score)
+  for (i in 1:length(data2[[1]])){
+    if (data2$win[[i]] == TRUE){
+      data2$Alliance_Score[[i]] <- max(scoreBlue[[i]], scoreRed[[i]])
+      data2$Opponent_Score[[i]] <- min(scoreBlue[[i]], scoreRed[[i]])
+    }else{
+      data2$Alliance_Score[[i]] <- min(scoreBlue[[i]], scoreRed[[i]])
+      data2$Opponent_Score[[i]] <- max(scoreBlue[[i]], scoreRed[[i]])
+    }
+  }
+  return(data2)
+} #formatting for GetTeamMatchesCustom
+getTeamMatchesWon <- function(year, team) {
+  data <- getTeamMatchesSimple(year, team)
+  data2 <- addWin(data,team)
+  data3 <- data %>% filter(data2$win == 1)
+  return(data3)
+} #Returns matches won by a given team in a given year.
+getTeamMatchesLost <- function(year, team) {
+  data <- getTeamMatchesSimple(year, team)
+  data2 <- addWin(data,team)
+  data3 <- data %>% filter(data2$win == 0)
+  return(data3)
+} #Returns matches lost by a given team in a given year.
+getTeamMatchesCustom <- function(year,team){
+  data <- getTeamMatchesSimple(year, team)
+  data2 <- addWin(data,team)
+  data3 <- addScore(data2,year, team)
+  data4 <- getEvents(year) %>%
+    select(event_type_string, key, name)
+  data5 <- data3 %>%
+    left_join(data4, by = c("event_key" = "key"))
+  for (i in 1:length(data5$win)){
+    if (data5$win[[i]] == TRUE){
+      data5$win[[i]] <- "Won"
+    }else {
+      data5$win[[i]] <- "Lost"
+    }
+  }
+  return(data5 %>%
+           filter(event_type_string != "Offseason"))
+} #Generates custom match information for a given team in a given year.
+
+################################################################################
+getTeamOpponents <- function(year, team){
+  data1 <- getTeamEvents(year, team) %>%
+    select(event_code)
+  data3 <- NULL
+  for (i in 1:length(data1[[1]])){
+    data2 <- getEventTeamsKeys(year, data1[[1]][[i]])
+    data3 <- c(data3,data2)
+  }
+  data4 <- as.numeric(gsub('frc','',data3))
+  data5 <- data4[order(data4)]
+  data6 <- distinct(as_tibble(data5))
+  return(data6)
+}
+getTeamOpponents2 <- function(year, team){
+  data1 <- getTeamEvents(year, team) %>%
+    select(event_code)
+  data3 <- NULL
+  for (i in 1:length(data1[[1]])){
+    data2 <- getEventTeamsKeys(year, data1[[1]][[i]])
+    data3 <- c(data3,data2)
+  }
+  data4 <- as.numeric(gsub('frc','',data3))
+  data5 <- data4[order(data4)]
+  data6 <- distinct(as_tibble(data5))
+  return(data6)
+}
+getTeamOpponentsEvents <- function(year,team){
+  data1 <- getTeamOpponents(year,team) 
+  data1$events = NA
+  
+  for(i in 1:length(data1[[1]])){
+    data2 <- getTeamEvents(year, data1[[1]][[i]]) %>%
+      select(name, week, end_date)
+    data2 <- arrange(data2, week)
+    data1$events[i] <- data2 %>% select(name)
+    
+  }
+  data2 <- separate(data1, events, c("event1","event2","event3","event4","event5", "event6"), sep = ",")
+  for (i in 1:7){
+    data2[[i]] <- gsub('c\\(\\"','', data2[[i]]) 
+    data2[[i]] <- gsub('\\"','', data2[[i]])
+    data2[[i]] <- gsub('\\)','', data2[[i]]) 
+  }
+  
+  return(data2)
+}
+
+################################################################################
+plotScores <- function(year, team){
+  winData <- getTeamMatchesCustom(year,team)
+  qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),shape = factor(str_trunc(name, 20)), main = team) + xlim(10,200) + ylim(10,200) + labs (shape = "Event") + labs (color = "Results")
+} #Generates a graph plotting a teams performance in a given year.
+plotScoresSimple <- function(year, team){
+  winData <- getTeamMatchesCustom(year,team)
+  qplot(Alliance_Score, Opponent_Score, data = winData, color = factor(win),) + xlim(10,200) + ylim(10,200)
+} #Simplified version of plotScores if team has too many matches.
+
+################################################################################
+
+gs4_deauth()
+
+
+
+import <- function(num){
+  sData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1RzqGQJR7wFQpR3750hDWJjC64vCGkPzLtZ9q5y0NanY/edit?usp=sharing", sheet = num))
+  sData <- sData %>% filter(!is.na(robot))
+  rangeAM  <- 3
+  rangeANS <- max(sData[3])
+  rangeTNS <- max(sData[4])
+  rangeNPS <- max(sData[5])+1
+  rangeCST <- 3
+  rangeDS  <- 5
+  selection <- c(2:7)
+  ranges <- c(rangeAM, rangeANS, rangeTNS, rangeNPS,  rangeCST, rangeDS)
+  
+  for (i in 1:length(ranges)){
+    x <- selection[i]
+    sData[x] <- sData[x] / ranges[i]
+  }
+  return(sData)
+}
+
+importCom <- function(num){
+  cData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1RzqGQJR7wFQpR3750hDWJjC64vCGkPzLtZ9q5y0NanY/edit?usp=sharing", sheet = num))
+  cData <- cData[order(as.numeric(cData$robot)),]
+}
+
+importPic <- function(num){
+  pData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1RzqGQJR7wFQpR3750hDWJjC64vCGkPzLtZ9q5y0NanY/edit?usp=sharing", sheet = num))
+  pData <- pData[order(as.numeric(pData$robot)),]
+}
+
+importPit <- function(num){
+  pitData <- data.frame(range_read("https://docs.google.com/spreadsheets/d/1lvIAFn5FIbpXGY2ALaWYkwI7M5e7q93OKrbFu0sgd-w/edit?usp=sharing", sheet = num))
+  pitData <- pitData[order(as.numeric(pitData$Team)),]
+}
+
+
+scoutData <- import(2)
+# scoutDataB <- import(11)
+scoutDataM <- import(8)
+scoutDataR <- import(5)
+
+comData <- importCom(3)
+comDataM <- importCom(9)
+#comDataB <- importCom(12)
+comDataR <- importCom(6)
+
+picData <- importPic(4)
+picDataR <- importPic(7)
+picDataM <- importPic(10)
+
+pitData <- importPit(1)
+pitDataR <- importPit(2)
+pitDataM <- importPit(2)
+
+
+
+
+oprDataM <- getEventOprs3("2023mslr")
+
+oprDataM <- oprDataM[order(as.numeric(oprDataM$name)),]
+oprDataM[2] <- oprDataM[2]/max(oprDataM[2])
+# 
+# 
+# oprDataB <- getEventOprs3("2024lake")
+# 
+# oprDataB <- oprDataB[order(as.numeric(oprDataB$name)),]
+# oprDataB[2] <- oprDataB[2]/max(oprDataB[2])
+
+oprDataR <- getEventOprs3("2024arli")
+
+oprDataR <- oprDataR[order(as.numeric(oprDataR$name)),]
+oprDataR[2] <- oprDataR[2]/max(oprDataR[2])
+
+oprData <- rbind(oprDataR, oprDataM) #, oprDataB)
+
+oprData[2] <- oprData[2]/max(oprData[2])
+oprData <- data.frame("name"=c(oprData$name),
+                       "value"=c(oprData$value))
+oprData <- oprData %>% group_by(name) %>% summarize(value=mean(value))
+oprData <- oprData[order(as.numeric(oprData$name)),]
+
+
+oppDataM<- as.numeric(gsub('frc','',getEventTeamsKeys(2024,"mslr")))
+oppDataM<- oppDataM[order(oppDataM)]
+#  
+# oppDataB<- as.numeric(gsub('frc','',getEventTeamsKeys(2024,"lake")))
+# oppDataB<- oppDataB[order(oppDataB)]
+
+oppDataR<- as.numeric(gsub('frc','',getEventTeamsKeys(2024,"arli")))
+oppDataR<- oppDataR[order(oppDataR)]
+# oppData<- getTeamOpponents(2023,8044)
+
+
+
+
+oppName<- as_tibble(as.character(oppDataM))
+oppName$name = NA
+for(i in 1:length(oppName$value)){
+   key <- getTeamData(oppName$value[i])
+   oppName$name[i] <- key$nickname
+ }
+#  oppName2<- as_tibble(as.character(oppDataB))
+#  oppName2$name = NA
+# for(i in 1:length(oppName2$value)){
+#    key <- getTeamData(oppName2$value[i])
+#    oppName2$name[i] <- key$nickname
+#  }
+oppName4<- as_tibble(as.character(oppDataR))
+oppName4$name = NA
+for(i in 1:length(oppName4$value)){
+  key <- getTeamData(oppName4$value[i])
+  oppName4$name[i] <- key$nickname
+}
+
+oppName3<- c(oppDataR, oppDataM) #,oppDataB)
+oppName3<- oppName3[order(oppName3)]
+oppName3<- as_tibble(as.character(oppName3))
+oppName3$name = NA
+for(i in 1:length(oppName3$value)){
+   key <- getTeamData(oppName3$value[i])
+   oppName3$name[i] <- key$nickname
+ }
+oppName3<- distinct(oppName3)
+
+
